@@ -1,0 +1,118 @@
+---
+title: "Target Capture vs RNAseq Variant Calls"
+output: html_document
+---
+
+```{r setup}
+library(knitr)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=50),tidy=TRUE, fig.align='center', fig.height = 10, fig.width = 10)
+knitr::opts_knit$set(root.dir = '~/RNA_seq_Analysis/2017.11.02_CompareRNAseq_FusionCalls/')
+```
+
+
+```{r message=FALSE}
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(stringr)
+library(reshape2)
+library(venn)
+library(tibble)
+library(tidyr)
+getwd()
+```
+
+
+
+```{r}
+source("~/scripts/conversion_scripts/Merge_Cat_FixDupIDs_Function.r")
+```
+
+
+#Read in the clinical information
+
+
+```{r}
+CDE <- read.csv("~/reference_mapping-files/TARGET_AML_current_asof_june30_2016_UPDATED_RhondaEdit_2017.06.08.csv", stringsAsFactors = FALSE, row.names = 1)
+
+head(CDE)
+```
+
+
+
+
+
+#Read in the reference calls 
+
+reference calls I mean high confidence targeted capture calls for variant. 
+
+```{r}
+wgs <- read.csv("stjude_analysis_for_protein_paint_SNVs.csv", stringsAsFactors = FALSE)
+head(wgs)
+# dim(wgs) #2,206 rows 
+```
+
+
+
+#Read in patient Variant Calls 
+
+```{r}
+path="/fh/fast/meshinchi_s/workingDir/TARGET/AML_TARGET/RNA/mRNAseq/level2/SNVs/2014Aug_BCCA_Illumina_data/"
+
+patients <- dir(path = path,pattern = ".maf") %>%
+  paste0(path, .)
+
+
+head(patients)
+```
+
+```{r}
+pattern <- "^.+TARGET.+\\-([A-Z]{6}.+R)\\..+"
+```
+
+
+```{r message=FALSE}
+# catedMAFs <- catMAFs(patients, pattern, header=TRUE)
+load("TARGET_AML_0531_CatedMAFs_fromRNASeq.RData") 
+
+catedMAFs <- catedMAFs %>%
+  mutate(USI=str_split_fixed(Patient, "\\-", n=2)[,1]) %>%
+  select(Patient.Barcode=Patient, USI, everything())
+
+head(catedMAFs)
+```
+
+```{r}
+dim(catedMAFs) #42,659,723  rows by     35
+```
+
+
+#Compare the RNAseq Counts to FLT3
+
+```{r}
+FLT3.SNVs <- catedMAFs %>%
+  filter(Gene.Symbol == "FLT3")
+
+dim(FLT3.SNVs)
+```
+
+```{r}
+FLT3.SNVs %>%
+  mutate(D835=ifelse(grepl("D835", Protein.change), "Yes", "No")) %>%
+  group_by(D835) %>%
+  summarise(n=n())
+```
+
+```{r}
+FLT3.SNVs[grepl("D835", FLT3.SNVs$Protein.change), ]
+```
+
+
+Expected 10 to have D835 SNP. 
+
+
+
+
+
+
+
